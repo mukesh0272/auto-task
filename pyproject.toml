@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-task"
+version = "0.1.0"
+description = "Local task automation: cron scheduling + file watching"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Mukesh Bhople" }]
+dependencies = [
+  "APScheduler>=3.10.4",
+  "watchdog>=4.0.1"
+]
+
+[project.scripts]
+auto-task = "auto_task.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["auto_task*"]
