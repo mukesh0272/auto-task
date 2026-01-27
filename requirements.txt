@@ -1,0 +1,2 @@
+APScheduler>=3.10.4
+watchdog>=4.0.1
