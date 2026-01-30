@@ -19,7 +19,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
     cfg = load_config(raw)
 
     setup_logging(cfg.log_level)
-    log.info("Loaded config: tasks=%d schedules=%d watchers=%d", len(cfg.tasks), len(cfg.schedules), len(cfg.watchers))
+    log.info(
+        "Loaded config: tasks=%d schedules=%d watchers=%d",
+        len(cfg.tasks),
+        len(cfg.schedules),
+        len(cfg.watchers),
+    )
 
     scheduler = SchedulerEngine(cfg)
     watcher = WatcherEngine(cfg)
@@ -33,11 +38,16 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, _handle)
 
+    scheduler_started = False
+    watcher_started = False
+
     # Start engines
     if cfg.schedules:
         scheduler.start()
+        scheduler_started = True
     if cfg.watchers:
         watcher.start()
+        watcher_started = True
 
     if not cfg.schedules and not cfg.watchers:
         log.error("Nothing to do: no schedules or watchers configured.")
@@ -47,8 +57,19 @@ def _cmd_run(args: argparse.Namespace) -> int:
         while not stop["flag"]:
             time.sleep(0.2)
     finally:
-        watcher.stop()
-        scheduler.stop()
+        # Stop only what we started. (watchdog's Observer is a thread; joining an
+        # unstarted thread can raise RuntimeError.)
+        if watcher_started:
+            try:
+                watcher.stop()
+            except Exception:
+                log.exception("Failed to stop watcher cleanly")
+
+        if scheduler_started:
+            try:
+                scheduler.stop()
+            except Exception:
+                log.exception("Failed to stop scheduler cleanly")
 
     return 0
 
