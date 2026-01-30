@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import os
+
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
@@ -43,13 +45,24 @@ class WatcherEngine:
 
     def start(self) -> None:
         for w in self.cfg.watchers:
+            watch_path = abspath(w.path)
+
+            # Fail fast with a clear, user-friendly error for common config mistakes.
+            if not os.path.exists(watch_path):
+                raise FileNotFoundError(f"Watcher path does not exist: {watch_path}")
+            if not os.path.isdir(watch_path):
+                raise NotADirectoryError(f"Watcher path is not a directory: {watch_path}")
+
             task = self.cfg.tasks[w.task]
             handler = _Handler(w, task)
-            watch_path = abspath(w.path)
+
             self.observer.schedule(handler, watch_path, recursive=w.recursive)
             log.info(
                 "Watching '%s' (recursive=%s, debounce_ms=%s) -> task '%s'",
-                watch_path, w.recursive, w.debounce_ms, w.task
+                watch_path,
+                w.recursive,
+                w.debounce_ms,
+                w.task,
             )
 
         self.observer.start()
